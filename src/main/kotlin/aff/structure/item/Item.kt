@@ -8,12 +8,19 @@ import cn.snowrainyskr.aff.structure.item.note.Hold
 import cn.snowrainyskr.aff.structure.item.note.SkyLine
 import cn.snowrainyskr.aff.structure.item.note.Tap
 import cn.snowrainyskr.aff.structure.item.sceneControl.SceneControl
+import cn.snowrainyskr.aff.structure.timingGroup.TimingGroup
 
 interface Item {
 	var aff: Aff
+	var timingGroup: TimingGroup
 	var time: Int
 
+	fun toTime(): Int = time
+
 	fun toAffLine(): String
+	fun moveTo(time: Int) {
+		this.time = time
+	}
 
 	val itemClass: ItemClass
 

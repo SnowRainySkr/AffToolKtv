@@ -3,6 +3,7 @@ package cn.snowrainyskr.aff.structure.item
 import cn.snowrainyskr.aff.structure.Aff
 import cn.snowrainyskr.aff.structure.item.enums.CameraEasing
 import cn.snowrainyskr.aff.structure.item.enums.ItemClass
+import cn.snowrainyskr.aff.structure.timingGroup.TimingGroup
 import cn.snowrainyskr.aff.utils.Vector3
 
 data class Camera(
@@ -13,6 +14,7 @@ data class Camera(
 	val duration: Int
 ) : Item {
 	override lateinit var aff: Aff
+	override lateinit var timingGroup: TimingGroup
 	
 	override fun toAffLine() =
 		"$itemClass($time,${movePx.toParamInt()},${angle.toParamFloat()},${easing.toParam()},$duration);"

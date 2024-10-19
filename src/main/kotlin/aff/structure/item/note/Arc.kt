@@ -5,6 +5,7 @@ import cn.snowrainyskr.aff.structure.item.ItemCompanion
 import cn.snowrainyskr.aff.structure.item.enums.ItemClass
 import cn.snowrainyskr.aff.structure.item.note.enums.ArcColor
 import cn.snowrainyskr.aff.structure.item.note.enums.ArcEasing
+import cn.snowrainyskr.aff.structure.timingGroup.TimingGroup
 import cn.snowrainyskr.aff.utils.Coordinate
 import cn.snowrainyskr.aff.utils.format
 import kotlin.math.absoluteValue
@@ -18,6 +19,7 @@ data class Arc(
 	val color: ArcColor
 ): Note, ArcLike, HoldJudgmentLike {
 	override lateinit var aff: Aff
+	override lateinit var timingGroup: TimingGroup
 
 	override fun toAffLine(): String {
 		val xs = "${pos.x.format()},${toPos.x.format()}"
@@ -65,5 +67,21 @@ data class Arc(
 			ArcEasing.fromParam(params[4]),
 			ArcColor.fromParam(params[7].toInt())
 		)
+
+		fun blue(
+			time: Int,
+			toTime: Int,
+			pos: Coordinate = Coordinate.leftUp,
+			toPos: Coordinate = Coordinate.leftUp,
+			easing: ArcEasing = ArcEasing.S
+		) = Arc(time, toTime, pos, toPos, easing, ArcColor.BLUE)
+
+		fun red(
+			time: Int,
+			toTime: Int,
+			pos: Coordinate = Coordinate.rightUp,
+			toPos: Coordinate = Coordinate.rightUp,
+			easing: ArcEasing = ArcEasing.S
+		) = Arc(time, toTime, pos, toPos, easing, ArcColor.RED)
 	}
 }

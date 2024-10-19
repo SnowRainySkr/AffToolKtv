@@ -4,6 +4,7 @@ import cn.snowrainyskr.aff.structure.Aff
 import cn.snowrainyskr.aff.structure.item.ItemCompanion
 import cn.snowrainyskr.aff.structure.item.enums.ItemClass
 import cn.snowrainyskr.aff.structure.item.note.enums.ArcEasing
+import cn.snowrainyskr.aff.structure.timingGroup.TimingGroup
 import cn.snowrainyskr.aff.utils.Coordinate
 import cn.snowrainyskr.aff.utils.format
 
@@ -16,7 +17,12 @@ data class SkyLine(
 	val arcTaps: MutableList<Int> = mutableListOf(),
 	override var hitSound: String = "none"
 ) : Note, ArcLike, CanSetHitSound {
+	init {
+		arcTaps.sort()
+	}
+
 	override lateinit var aff: Aff
+	override lateinit var timingGroup: TimingGroup
 
 	override fun toAffLine(): String {
 		val xs = "${pos.x.format()},${toPos.x.format()}"
@@ -28,6 +34,22 @@ data class SkyLine(
 
 	override val itemClass: ItemClass
 		get() = SkyLine.itemClass
+
+	override fun moveTo(time: Int) {
+		for (i in arcTaps.indices) {
+			arcTaps[i] -= this.time - time
+		}
+		super<ArcLike>.moveTo(time)
+	}
+
+	val length: Int
+		get() = toTime - time
+
+	val arctapCount: Int
+		get() = arcTaps.size
+
+	val isArcTap: Boolean
+		get() = length == 1 && arctapCount == 1
 
 	override val judgments: List<Int>
 		get() = arcTaps
@@ -42,5 +64,7 @@ data class SkyLine(
 			arcTaps = params.drop(10).map { it.toInt() }.toMutableList(),
 			hitSound = params[8]
 		)
+
+		fun arctap(time: Int, pos: Coordinate) = SkyLine(time, time + 1, pos, pos, ArcEasing.S, mutableListOf(time))
 	}
 }

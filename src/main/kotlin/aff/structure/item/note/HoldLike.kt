@@ -1,7 +1,12 @@
 package cn.snowrainyskr.aff.structure.item.note
 
-import cn.snowrainyskr.aff.structure.item.Item
-
-sealed interface HoldLike : Item {
+sealed interface HoldLike: Note {
 	var toTime: Int
+
+	override fun moveTo(time: Int) {
+		toTime -= this.time - time
+		super.moveTo(time)
+	}
+
+	override fun toTime() = toTime
 }

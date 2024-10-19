@@ -4,17 +4,19 @@ import cn.snowrainyskr.aff.structure.Aff
 import cn.snowrainyskr.aff.structure.item.ItemCompanion
 import cn.snowrainyskr.aff.structure.item.enums.ItemClass
 import cn.snowrainyskr.aff.structure.item.note.enums.Lane
+import cn.snowrainyskr.aff.structure.timingGroup.TimingGroup
 import kotlin.math.absoluteValue
 
 data class Hold(
 	override var time: Int, override var toTime: Int, override var lane: Lane
 ): Note, HoldLike, GroundItem, HoldJudgmentLike {
+	override lateinit var aff: Aff
+	override lateinit var timingGroup: TimingGroup
+
 	@Suppress("UNUSED")
 	constructor(time: Int, toTime: Int, lane: Int): this(time, toTime, Lane.from(lane))
 	@Suppress("UNUSED")
 	constructor(time: Int, toTime: Int, lane: Double): this(time, toTime, Lane.from(lane))
-
-	override lateinit var aff: Aff
 
 	override fun toAffLine() = "$itemClass($time,$toTime,${lane.toParam()});"
 

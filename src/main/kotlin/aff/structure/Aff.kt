@@ -34,6 +34,11 @@ class Aff(val headers: MutableMap<String, AffHeader>, val timingGroups: MutableL
 		).joinToString("\n")
 	}
 
+	@Suppress("UNUSED")
+	fun output(file: File, option: AffSortOptions = AffSortOptions.SortByClass) {
+		file.writeText(toAff(option))
+	}
+
 	// Headers Edit
 	fun addAffProperty(affHeader: AffHeader) = affHeader.run {
 		headers[paramName]?.run { valueAsString = affHeader.valueAsString } ?: headers.put(paramName, this)
@@ -67,8 +72,10 @@ class Aff(val headers: MutableMap<String, AffHeader>, val timingGroups: MutableL
 	var constant: Double?
 		get() = headers["constant"]?.valueAsString?.toDouble()
 		set(value) {
-			headers["constant"]?.run { valueAsString = value.toString() }
-				?: addAffProperty("constant", value.toString())
+			headers["constant"]?.run { valueAsString = value.toString() } ?: addAffProperty(
+				"constant",
+				value.toString()
+			)
 		}
 
 	//Aff Controlling
@@ -93,8 +100,12 @@ class Aff(val headers: MutableMap<String, AffHeader>, val timingGroups: MutableL
 							while (indexTails < tails.size && item2().time < item1.toTime + 10) {
 								val item2 = item2()
 								fun near(a: Double, b: Double, r: Double) = (a - b).absoluteValue < r
-								if (near(item1.toPos.x, item2.pos.x, 0.1) && near(item1.toPos.y, item2.pos.y, 0.01))
-									add(item2.apply { isHead = false })
+								if (near(item1.toPos.x, item2.pos.x, 0.1) && near(
+										item1.toPos.y,
+										item2.pos.y,
+										0.01
+									)
+								) add(item2.apply { isHead = false })
 								indexTails++
 							}
 							indexTails = startIndexTails
@@ -175,6 +186,8 @@ class Aff(val headers: MutableMap<String, AffHeader>, val timingGroups: MutableL
 
 	fun <T: Item> add(item: T, timingGroup: TimingGroup = defaultTimingGroup) = timingGroup.add<T>(item)
 
+	fun align(n: Number, allowableError: Int? = null) = timingGroups.forEach { it.align(n, allowableError) }
+
 	//Judgments
 	val judgments
 		get() = timingGroups.map {
@@ -246,13 +259,11 @@ class Aff(val headers: MutableMap<String, AffHeader>, val timingGroups: MutableL
 							add(TimingGroup.fromAffLines(it[1], it[2].split(";")))
 						}
 					}
-				} else {
-					add(
-						TimingGroup.fromAffLines(
-							pureTimingGroupPattern.find(aff)?.groupValues?.get(1)?.split(";") ?: throw e
-						)
+				} else add(
+					TimingGroup.fromAffLines(
+						pureTimingGroupPattern.find(aff)?.groupValues?.get(1)?.split(";") ?: throw e
 					)
-				}
+				)
 			}.toMutableList()
 			Aff(header, timingGroups)
 		}
