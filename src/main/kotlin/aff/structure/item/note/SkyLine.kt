@@ -16,7 +16,7 @@ data class SkyLine(
 	override var easing: ArcEasing,
 	val arcTaps: MutableList<Int> = mutableListOf(),
 	override var hitSound: String = "none"
-) : Note, ArcLike, CanSetHitSound {
+): Note, ArcLike, CanSetHitSound {
 	init {
 		arcTaps.sort()
 	}
@@ -36,10 +36,13 @@ data class SkyLine(
 		get() = SkyLine.itemClass
 
 	override fun moveTo(time: Int) {
-		for (i in arcTaps.indices) {
-			arcTaps[i] -= this.time - time
-		}
+		for (i in arcTaps.indices) arcTaps[i] -= this.time - time
 		super<ArcLike>.moveTo(time)
+	}
+
+	override fun moveForward(dTime: Int) {
+		for (i in arcTaps.indices) arcTaps[i] += dTime
+		super<ArcLike>.moveForward(dTime)
 	}
 
 	val length: Int
@@ -54,7 +57,7 @@ data class SkyLine(
 	override val judgments: List<Int>
 		get() = arcTaps
 
-	companion object : ItemCompanion(ItemClass.SKYLINE) {
+	companion object: ItemCompanion(ItemClass.SKYLINE) {
 		override fun fromParams(params: List<String>) = SkyLine(
 			params[0].toInt(),
 			params[1].toInt(),

@@ -186,7 +186,11 @@ class Aff(val headers: MutableMap<String, AffHeader>, val timingGroups: MutableL
 
 	fun <T: Item> add(item: T, timingGroup: TimingGroup = defaultTimingGroup) = timingGroup.add<T>(item)
 
+	@Suppress("UNUSED")
 	fun align(n: Number, allowableError: Int? = null) = timingGroups.forEach { it.align(n, allowableError) }
+
+	@Suppress("UNUSED")
+	fun moveForward(offset: Int) = timingGroups.forEach { it.moveForward(offset) }
 
 	//Judgments
 	val judgments

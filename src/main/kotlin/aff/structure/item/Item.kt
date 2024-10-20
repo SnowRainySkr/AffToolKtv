@@ -18,8 +18,12 @@ interface Item {
 	fun toTime(): Int = time
 
 	fun toAffLine(): String
+
 	fun moveTo(time: Int) {
 		this.time = time
+	}
+	fun moveForward(dTime: Int) {
+		time += dTime
 	}
 
 	val itemClass: ItemClass

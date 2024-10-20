@@ -8,5 +8,10 @@ sealed interface HoldLike: Note {
 		super.moveTo(time)
 	}
 
+	override fun moveForward(dTime: Int) {
+		toTime += dTime
+		super.moveForward(dTime)
+	}
+
 	override fun toTime() = toTime
 }

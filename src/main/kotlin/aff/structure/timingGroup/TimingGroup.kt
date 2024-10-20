@@ -99,6 +99,12 @@ class TimingGroup(
 
 	fun align(n: Number, allowableError: Int? = null) = timings.forEach { it.align(n, allowableError = allowableError) }
 
+	fun moveForward(offset: Int) {
+		items.forEach { it.moveForward(offset) }
+		recalculateTimings()
+		items.addFirst(Timing.zero(items.first { it is Timing } as Timing))
+	}
+
 	companion object {
 		fun fromAffLines(contentLines: List<String>) = fromAffLines("", contentLines)
 

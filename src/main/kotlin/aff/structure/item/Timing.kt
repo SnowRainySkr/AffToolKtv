@@ -29,7 +29,7 @@ data class Timing(override var time: Int, var bpm: Double, var beats: Double): I
 			return range.last
 		}
 
-	fun alignHoldLikeToTimeInAnotherTiming(hold: HoldLike, n: Double, allowableError: Int?) {
+	private fun alignHoldLikeToTimeInAnotherTiming(hold: HoldLike, n: Double, allowableError: Int?) {
 		val toTimeTiming = timingGroup.timings.find(hold.toTime)
 		val interval = 240_000 / (n * toTimeTiming.bpm)
 		if (interval == 0.0) return
@@ -39,7 +39,7 @@ data class Timing(override var time: Int, var bpm: Double, var beats: Double): I
 			hold.toTime = toTimeAfterAligned
 	}
 
-	fun alignHoldLikeToTime(
+	private fun alignHoldLikeToTime(
 		hold: HoldLike,
 		n: Double,
 		allowableError: Int?,
@@ -56,7 +56,7 @@ data class Timing(override var time: Int, var bpm: Double, var beats: Double): I
 			hold.time = timeAfterAligned
 	}
 
-	fun alignNoteTime(tap: Note, timeAfterAligned: Int, allowableError: Int?) {
+	private fun alignNoteTime(tap: Note, timeAfterAligned: Int, allowableError: Int?) {
 		if (allowableError == null || (timeAfterAligned - tap.time).absoluteValue <= allowableError)
 			tap.moveTo(timeAfterAligned)
 	}
@@ -106,5 +106,7 @@ data class Timing(override var time: Int, var bpm: Double, var beats: Double): I
 
 		val zero = Timing(0, 100.0, 4.28)
 		val inf = Timing(Int.MAX_VALUE, 0.0, 0.0)
+
+		fun zero(timing: Timing) = timing.copy(0)
 	}
 }
