@@ -54,7 +54,7 @@ class TimingGroup(
 			"};",
 		).joinToString("\n")
 
-	fun <T: Item> add(item: T) {
+	fun add(item: Item) {
 		val index = items.binarySearch { it.time - item.time }
 		val insertionPoint = if (index < 0) -index - 1 else index + 1
 		items.add(insertionPoint, item.apply {
@@ -99,7 +99,7 @@ class TimingGroup(
 
 	fun align(n: Number, allowableError: Int? = null) = timings.forEach { it.align(n, allowableError = allowableError) }
 
-	fun moveForward(offset: Int) {
+	fun itemsOffset(offset: Int) {
 		items.forEach { it.moveForward(offset) }
 		recalculateTimings()
 		items.addFirst(Timing.zero(items.first { it is Timing } as Timing))

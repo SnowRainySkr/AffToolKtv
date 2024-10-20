@@ -40,39 +40,39 @@ class Aff(val headers: MutableMap<String, AffHeader>, val timingGroups: MutableL
 	}
 
 	// Headers Edit
-	fun addAffProperty(affHeader: AffHeader) = affHeader.run {
+	fun addAffHeader(affHeader: AffHeader) = affHeader.run {
 		headers[paramName]?.run { valueAsString = affHeader.valueAsString } ?: headers.put(paramName, this)
 	}
 
-	fun addAffProperty(name: String, value: String) = addAffProperty(AffHeader.create(name, value))
+	fun addAffHeader(name: String, value: String) = addAffHeader(AffHeader.create(name, value))
 
-	fun removeAffProperty(name: String) = headers.remove(name)
+	fun removeAffHeader(name: String) = headers.remove(name)
 
 	@Suppress("UNUSED")
 	var audioOffset: Int
 		get() = (headers[AudioOffset.PARAM_NAME]!! as AudioOffset).value
 		set(value) {
-			addAffProperty(AudioOffset.PARAM_NAME, value.toString())
+			addAffHeader(AudioOffset.PARAM_NAME, value.toString())
 		}
 
 	var timingPointDensityFactor: Double
 		get() = headers[TimingPointDensityFactor.PARAM_NAME]?.let { (it as TimingPointDensityFactor).value } ?: 1.0
 		set(value) {
-			if (value == 1.0) removeAffProperty(TimingPointDensityFactor.PARAM_NAME)
-			else addAffProperty(TimingPointDensityFactor.PARAM_NAME, value.toString())
+			if (value == 1.0) removeAffHeader(TimingPointDensityFactor.PARAM_NAME)
+			else addAffHeader(TimingPointDensityFactor.PARAM_NAME, value.toString())
 		}
 
 	@Suppress("UNUSED")
 	var version: String
 		get() = headers["version"]?.valueAsString ?: "0"
 		set(value) {
-			addAffProperty("version", value)
+			addAffHeader("version", value)
 		}
 
 	var constant: Double?
 		get() = headers["constant"]?.valueAsString?.toDouble()
 		set(value) {
-			headers["constant"]?.run { valueAsString = value.toString() } ?: addAffProperty(
+			headers["constant"]?.run { valueAsString = value.toString() } ?: addAffHeader(
 				"constant",
 				value.toString()
 			)
@@ -184,13 +184,13 @@ class Aff(val headers: MutableMap<String, AffHeader>, val timingGroups: MutableL
 	@Suppress("UNUSED")
 	inline fun <reified T: Item> findUnique(time: Int) = find<T>(time).takeIf { it.isNotEmpty() }?.first()
 
-	fun <T: Item> add(item: T, timingGroup: TimingGroup = defaultTimingGroup) = timingGroup.add<T>(item)
+	fun add(item: Item, timingGroup: TimingGroup = defaultTimingGroup) = timingGroup.add(item)
 
 	@Suppress("UNUSED")
 	fun align(n: Number, allowableError: Int? = null) = timingGroups.forEach { it.align(n, allowableError) }
 
 	@Suppress("UNUSED")
-	fun moveForward(offset: Int) = timingGroups.forEach { it.moveForward(offset) }
+	fun itemsOffset(offset: Int) = timingGroups.forEach { it.itemsOffset(offset) }
 
 	//Judgments
 	val judgments
@@ -218,7 +218,8 @@ class Aff(val headers: MutableMap<String, AffHeader>, val timingGroups: MutableL
 	}
 
 	@Suppress("UNUSED")
-	fun fractureRayInfo() = object: FractureRayInfo {
+	val fractureRayInfo
+		get() = object: FractureRayInfo {
 		private val judgeTimes = this@Aff.judgeTimes
 		private val quantity = judgeTimes.size
 		override val memoryFactor = when (quantity) {

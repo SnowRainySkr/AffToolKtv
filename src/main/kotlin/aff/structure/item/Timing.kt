@@ -107,6 +107,6 @@ data class Timing(override var time: Int, var bpm: Double, var beats: Double): I
 		val zero = Timing(0, 100.0, 4.28)
 		val inf = Timing(Int.MAX_VALUE, 0.0, 0.0)
 
-		fun zero(timing: Timing) = timing.copy(0)
+		fun zero(timing: Timing? = null) = timing?.copy(0) ?: zero
 	}
 }

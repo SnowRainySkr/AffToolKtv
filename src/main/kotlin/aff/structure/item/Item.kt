@@ -39,5 +39,7 @@ interface Item {
 			Camera
 			SceneControl
 		}
+
+		fun fromAffLines(line: String) = ItemCompanion.fromAffLine(line)
 	}
 }

@@ -68,6 +68,7 @@ data class Arc(
 			ArcColor.fromParam(params[7].toInt())
 		)
 
+		@Suppress("UNUSED")
 		fun blue(
 			time: Int,
 			toTime: Int,
@@ -75,7 +76,7 @@ data class Arc(
 			toPos: Coordinate = Coordinate.leftUp,
 			easing: ArcEasing = ArcEasing.S
 		) = Arc(time, toTime, pos, toPos, easing, ArcColor.BLUE)
-
+		@Suppress("UNUSED")
 		fun red(
 			time: Int,
 			toTime: Int,
