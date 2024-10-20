@@ -22,3 +22,6 @@ fun main() {
 	println("Total notes in aff: ${aff.quantity}")
 }
 ```
+
+## API Reference
+[APIReference.md](https://github.com/SnowRainySkr/AffKt/blob/master/APIReference.md)
