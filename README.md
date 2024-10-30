@@ -1,6 +1,7 @@
-# AffKt - README
+# AffToolKtv - README
 
-AffKt is a Kotlin library designed to facilitate handling of the Arcaea File Format (aff).  With AffKt, you can read, modify, and write aff files using Kotlin.
+AffToolKtv is a Kotlin library designed to facilitate handling of the Arcaea File Format (aff).  With AffToolKtv, you can read, modify, and write aff files using Kotlin.
+The name "AffToolKtv" comes from [aff-toolbox](https://github.com/feightwywx/aff-toolbox)
 
 ## Quick Start
 
