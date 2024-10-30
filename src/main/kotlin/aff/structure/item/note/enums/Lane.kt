@@ -4,13 +4,27 @@ import cn.snowrainyskr.aff.structure.item.enums.ItemParamEnum
 import cn.snowrainyskr.aff.structure.item.enums.ItemParamEnumCompanion
 
 sealed class Lane: ItemParamEnum<String> {
-	class IntLane(val lane: Int): Lane() {
+	class IntLane(var lane: Int): Lane() {
 		override fun toParam() = lane.toString()
+		override fun mirror() {
+			lane = 5 - lane
+		}
+
+		override fun copy() = IntLane(lane)
 	}
 
-	class FloatLane(val lane: Double): Lane() {
+	class FloatLane(var lane: Double): Lane() {
 		override fun toParam() = String.format("%.2f", lane)
+		override fun mirror() {
+			lane = 5.0 - lane
+		}
+
+		override fun copy() = FloatLane(lane)
 	}
+
+	abstract fun copy(): Lane
+
+	abstract fun mirror()
 
 	override fun equals(other: Any?) = if (other is Number) {
 		when (this) {

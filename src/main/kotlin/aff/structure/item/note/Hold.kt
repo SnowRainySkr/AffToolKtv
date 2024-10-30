@@ -5,13 +5,16 @@ import cn.snowrainyskr.aff.structure.item.ItemCompanion
 import cn.snowrainyskr.aff.structure.item.enums.ItemClass
 import cn.snowrainyskr.aff.structure.item.note.enums.Lane
 import cn.snowrainyskr.aff.structure.timingGroup.TimingGroup
+import cn.snowrainyskr.aff.utils.AdeCoordinate
 import kotlin.math.absoluteValue
 
 data class Hold(
 	override var time: Int, override var toTime: Int, override var lane: Lane
-): Note, HoldLike, GroundItem, HoldJudgmentLike {
+): GroundNote, HoldLike, HoldJudgmentLike {
 	override lateinit var aff: Aff
 	override lateinit var timingGroup: TimingGroup
+	override lateinit var adeCoordinate: AdeCoordinate
+	override lateinit var toAdeCoordinate: AdeCoordinate
 
 	@Suppress("UNUSED")
 	constructor(time: Int, toTime: Int, lane: Int): this(time, toTime, Lane.from(lane))
@@ -43,6 +46,8 @@ data class Hold(
 				}
 			}
 		} ?: throw RuntimeException("HoldBpmNotInitializedException")
+
+	override fun copy() = Hold(time, toTime, lane.copy())
 
 	companion object: ItemCompanion(ItemClass.HOLD) {
 		override fun fromParams(params: List<String>) =

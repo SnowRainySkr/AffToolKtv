@@ -27,6 +27,8 @@ interface Item {
 	}
 
 	val itemClass: ItemClass
+	val companion
+		get() = ItemCompanion.itemCompanionMap[itemClass]!!
 
 	companion object {
 		init {
@@ -40,6 +42,6 @@ interface Item {
 			SceneControl
 		}
 
-		fun fromAffLines(line: String) = ItemCompanion.fromAffLine(line)
+		fun fromAffLine(line: String) = ItemCompanion.fromAffLine(line)
 	}
 }

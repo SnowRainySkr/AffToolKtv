@@ -1,18 +1,31 @@
 package cn.snowrainyskr.aff.structure
 
+import cn.snowrainyskr.aff.composite.item.CompositeItem
 import cn.snowrainyskr.aff.structure.header.AffHeader
 import cn.snowrainyskr.aff.structure.header.AudioOffset
 import cn.snowrainyskr.aff.structure.header.TimingPointDensityFactor
 import cn.snowrainyskr.aff.structure.item.Item
 import cn.snowrainyskr.aff.structure.item.note.Arc
+import cn.snowrainyskr.aff.structure.item.note.HoldLike
 import cn.snowrainyskr.aff.structure.item.note.Note
+import cn.snowrainyskr.aff.structure.item.note.SkyLine
 import cn.snowrainyskr.aff.structure.timingGroup.TimingGroup
 import java.io.File
+import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 import java.util.Stack
 import kotlin.math.absoluteValue
 import kotlin.math.ceil
+import kotlin.system.exitProcess
 
-class Aff(val headers: MutableMap<String, AffHeader>, val timingGroups: MutableList<TimingGroup>) {
+class Aff(val headers: MutableMap<String, AffHeader>, val timingGroups: MutableList<TimingGroup>, val file: File) {
+	lateinit var backupFile: File
+
+	data class BaseBpm(val bpm: Double)
+
+	lateinit var baseBpm: BaseBpm
+	var speed = 6.0
+
 	init {
 		timingGroups.forEach {
 			it.aff = this
@@ -37,6 +50,21 @@ class Aff(val headers: MutableMap<String, AffHeader>, val timingGroups: MutableL
 	@Suppress("UNUSED")
 	fun output(file: File, option: AffSortOptions = AffSortOptions.SortByClass) {
 		file.writeText(toAff(option))
+	}
+
+	fun backup(option: AffSortOptions = AffSortOptions.SortByClass) {
+		backupFile.writeFile(toAff(option))
+		exitProcess(0)
+	}
+
+	fun undo() {
+		file.writeText(backupFile.readText())
+		exitProcess(0)
+	}
+
+	fun edit(file: File = this.file, option: AffSortOptions = AffSortOptions.SortByClass, f: Aff.() -> Unit) {
+		f()
+		output(file, option)
 	}
 
 	// Headers Edit
@@ -149,6 +177,8 @@ class Aff(val headers: MutableMap<String, AffHeader>, val timingGroups: MutableL
 		}
 	}
 
+	fun recalculateAdeCoordinate() = timingGroups.forEach { it.recalculateNoteAdeCoordinate() }
+
 	lateinit var arcGroupsBehind: Map<Arc, Set<Arc>>
 
 	@Suppress("UNUSED")
@@ -164,21 +194,11 @@ class Aff(val headers: MutableMap<String, AffHeader>, val timingGroups: MutableL
 		get() = timingGroups.map { it.items }.flatten().sortedBy { it.time }
 
 	inline fun <reified T: Item> find(time: Int): List<T> {
-		val possibleList = timingGroups.map { it.items.filterIsInstance<T>() }.flatten()
-		val index = possibleList.binarySearch { it.time - time }
-		return if (index < 0) listOf()
-		else buildList {
-			var i = index
-			while (i >= 0 && possibleList[i].time == time) {
-				add(possibleList[i])
-				i--
-			}
-			i = index + 1
-			while (i < possibleList.size && possibleList[i].time == time) {
-				add(possibleList[i])
-				i++
-			}
-		}
+		return timingGroups.map { it.itemsInRange(time..time).filterIsInstance<T>() }.flatten()
+	}
+
+	inline fun <reified T: HoldLike> findIncluding(time: Int, fromTime: Int = 0): List<T> {
+		return timingGroups.map { it.holdLikeIncluding(time, fromTime).filterIsInstance<T>() }.flatten()
 	}
 
 	@Suppress("UNUSED")
@@ -186,11 +206,25 @@ class Aff(val headers: MutableMap<String, AffHeader>, val timingGroups: MutableL
 
 	fun add(item: Item, timingGroup: TimingGroup = defaultTimingGroup) = timingGroup.add(item)
 
+	fun add(compositeItem: CompositeItem, timingGroup: TimingGroup = defaultTimingGroup) =
+		timingGroup.add(compositeItem)
+
+	@Suppress("UNUSED")
+	fun remove(item: Item) {
+		for (timingGroup in timingGroups) if (timingGroup.remove(item)) return
+	}
+
 	@Suppress("UNUSED")
 	fun align(n: Number, allowableError: Int? = null) = timingGroups.forEach { it.align(n, allowableError) }
 
 	@Suppress("UNUSED")
 	fun itemsOffset(offset: Int) = timingGroups.forEach { it.itemsOffset(offset) }
+
+	@Suppress("UNUSED")
+	fun mirror() = timingGroups.forEach { it.mirror() }
+
+	@Suppress("UNUSED")
+	fun scale(scale: Double, fromTime: Int? = null) = timingGroups.forEach { it.scale(scale, fromTime) }
 
 	//Judgments
 	val judgments
@@ -220,26 +254,46 @@ class Aff(val headers: MutableMap<String, AffHeader>, val timingGroups: MutableL
 	@Suppress("UNUSED")
 	val fractureRayInfo
 		get() = object: FractureRayInfo {
-		private val judgeTimes = this@Aff.judgeTimes
-		private val quantity = judgeTimes.size
-		override val memoryFactor = when (quantity) {
-			in 0..<400 -> 80.0 / quantity + 0.2
-			in 400..<600 -> 32.0 / quantity + 0.2
-			else -> 96.0 / quantity + 0.08
-		}.let { baseMemoryFactor ->
-			constant?.takeIf { it >= 11 }?.let { baseMemoryFactor * 0.8 } ?: baseMemoryFactor
+			private val judgeTimes = this@Aff.judgeTimes
+			private val quantity = judgeTimes.size
+			override val memoryFactor = when (quantity) {
+				in 0..<400 -> 80.0 / quantity + 0.2
+				in 400..<600 -> 32.0 / quantity + 0.2
+				else -> 96.0 / quantity + 0.08
+			}.let { baseMemoryFactor ->
+				constant?.takeIf { it >= 11 }?.let { baseMemoryFactor * 0.8 } ?: baseMemoryFactor
+			}
+
+			override val trackComplete = object: FractureRayInfo.RecollectionGaugeInfo {
+				override val combo = ceil(70 / memoryFactor).toInt()
+				override val time = if (combo < quantity) judgeTimes[combo - 1] else null
+			}
+
+			override val hardcore = object: FractureRayInfo.RecollectionGaugeInfo {
+				override val combo = ceil(100 / memoryFactor).toInt()
+				override val time = if (combo < quantity) judgeTimes[combo - 1] else null
+			}
 		}
 
-		override val trackComplete = object: FractureRayInfo.RecollectionGaugeInfo {
-			override val combo = ceil(70 / memoryFactor).toInt()
-			override val time = if (combo < quantity) judgeTimes[combo - 1] else null
+	val skyLineEuclideanLengthSummary: List<Double>
+		get() {
+			val skyLines = items.filterIsInstance<SkyLine>()
+			val lastToTime = skyLines.takeIf { it.isNotEmpty() }?.maxOf { it.toTime } ?: items.maxOf { it.toTime() }
+			val endSummary = MutableList(lastToTime / 500 + 3) { 0.0 }
+			val result = MutableList(lastToTime / 500 + 3) { 0.0 }
+			if (skyLines.isEmpty()) return result
+			skyLines.forEach { skyLine ->
+				val info = skyLine.euclideanLengthInfo
+				info.forEach { (time, length) ->
+					result[time / 500] += length
+				}
+				val max = info.maxBy { (time) -> time }
+				endSummary[max.key / 500 + 1] += max.value
+			}
+			for (i in endSummary.drop(1).indices) endSummary[i + 1] += endSummary[i]
+			for (i in result.indices) result[i] += endSummary[i]
+			return result
 		}
-
-		override val hardcore = object: FractureRayInfo.RecollectionGaugeInfo {
-			override val combo = ceil(100 / memoryFactor).toInt()
-			override val time = if (combo < quantity) judgeTimes[combo - 1] else null
-		}
-	}
 
 	companion object {
 		private val e = RuntimeException("AffConvertException")
@@ -248,29 +302,43 @@ class Aff(val headers: MutableMap<String, AffHeader>, val timingGroups: MutableL
 		private val pureTimingGroupPattern = Regex(""".*?-\s+(.*)""", RegexOption.DOT_MATCHES_ALL)
 		private val timingGroupPattern = Regex("""timinggroup\s*\((.*?)\)\s*\{(.*?)};""", RegexOption.DOT_MATCHES_ALL)
 
+		private fun File.writeFile(content: String) {
+			if (!exists()) {
+				File(parent).mkdirs()
+				createNewFile()
+			}
+			writeText(content)
+		}
+
 		@Suppress("UNUSED")
-		fun fromAff(aff: File) = aff.readText().let { aff ->
-			val header = AffHeader.fromAffHeaderLines(aff.lineSequence().takeWhile { it != "-" }.toList())
+		fun fromAff(aff: File) = aff.readText().let { affContent ->
+			val header = AffHeader.fromAffHeaderLines(affContent.lineSequence().takeWhile { it != "-" }.toList())
 				.associateBy { it.paramName }.toMutableMap()
 			val timingGroups = buildList {
-				if (aff.contains("timinggroup")) {
+				if (affContent.contains("timinggroup")) {
 					add(
 						TimingGroup.fromAffLines(
-							defaultTimingGroupPattern.find(aff)?.groupValues?.get(1)?.split(";") ?: throw e
+							defaultTimingGroupPattern.find(affContent)?.groupValues?.get(1)?.split(";") ?: throw e
 						)
 					)
-					timingGroupPattern.findAll(aff).forEach { matchResult ->
+					timingGroupPattern.findAll(affContent).forEach { matchResult ->
 						matchResult.groupValues.let {
 							add(TimingGroup.fromAffLines(it[1], it[2].split(";")))
 						}
 					}
 				} else add(
 					TimingGroup.fromAffLines(
-						pureTimingGroupPattern.find(aff)?.groupValues?.get(1)?.split(";") ?: throw e
+						pureTimingGroupPattern.find(affContent)?.groupValues?.get(1)?.split(";") ?: throw e
 					)
 				)
 			}.toMutableList()
-			Aff(header, timingGroups)
+			File(
+				aff.parent + """\affToolKtBackup\""" +
+						LocalDateTime.now().format(DateTimeFormatter.ofPattern("uuuu-MM-dd_HH-mm-ss")) +
+						""" - ${aff.name}"""
+			).writeFile(affContent)
+			val backup = File(aff.parent + """\affToolKtBackup\${aff.name}""")
+			Aff(header, timingGroups, aff).apply { backupFile = backup }
 		}
 	}
 }

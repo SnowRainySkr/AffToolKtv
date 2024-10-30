@@ -22,7 +22,6 @@ abstract class ItemCompanion(val itemClass: ItemClass) {
 		private val arcTapPattern = Regex("""\((.*?)\)""")
 
 		fun fromAffLine(line: String) = line.format().run {
-			Item
 			if (last() == ']') {
 				val params = skyLinePattern.find(this)?.let { matchResult ->
 					matchResult.groupValues.let {

@@ -8,7 +8,6 @@ import cn.snowrainyskr.aff.structure.item.note.SkyLine
 import cn.snowrainyskr.aff.structure.timingGroup.TimingGroup
 import cn.snowrainyskr.aff.utils.find
 import cn.snowrainyskr.aff.utils.format
-import cn.snowrainyskr.aff.utils.lazySubList
 import kotlin.math.absoluteValue
 import kotlin.math.roundToInt
 
@@ -35,30 +34,27 @@ data class Timing(override var time: Int, var bpm: Double, var beats: Double): I
 		if (interval == 0.0) return
 		val nInterval = ((hold.toTime - toTimeTiming.time) / interval.absoluteValue).roundToInt()
 		val toTimeAfterAligned = toTimeTiming.time + (interval * nInterval).roundToInt()
-		if (allowableError == null || (toTimeAfterAligned - hold.toTime).absoluteValue < allowableError)
-			hold.toTime = toTimeAfterAligned
+		if (allowableError == null || (toTimeAfterAligned - hold.toTime).absoluteValue < allowableError) hold.toTime =
+			toTimeAfterAligned
 	}
 
 	private fun alignHoldLikeToTime(
-		hold: HoldLike,
-		n: Double,
-		allowableError: Int?,
-		interval: Double,
-		timeAfterAligned: Int
+		hold: HoldLike, n: Double, allowableError: Int?, interval: Double, timeAfterAligned: Int
 	) {
 		if (hold.toTime <= toTime) {
 			val nInterval = ((hold.toTime - time) / interval.absoluteValue).roundToInt()
 			val toTimeAfterAligned = time + (interval * nInterval).roundToInt()
-			if (allowableError == null || (toTimeAfterAligned - hold.toTime).absoluteValue <= allowableError)
-				hold.toTime = toTimeAfterAligned
+			if (allowableError == null || (toTimeAfterAligned - hold.toTime).absoluteValue <= allowableError) hold.toTime =
+				toTimeAfterAligned
 		} else alignHoldLikeToTimeInAnotherTiming(hold, n.toDouble(), allowableError)
-		if (allowableError == null || (timeAfterAligned - hold.time).absoluteValue <= allowableError)
-			hold.time = timeAfterAligned
+		if (allowableError == null || (timeAfterAligned - hold.time).absoluteValue <= allowableError) hold.time =
+			timeAfterAligned
 	}
 
 	private fun alignNoteTime(tap: Note, timeAfterAligned: Int, allowableError: Int?) {
-		if (allowableError == null || (timeAfterAligned - tap.time).absoluteValue <= allowableError)
-			tap.moveTo(timeAfterAligned)
+		if (allowableError == null || (timeAfterAligned - tap.time).absoluteValue <= allowableError) tap.moveTo(
+			timeAfterAligned
+		)
 	}
 
 	fun align(note: Note, n: Number, allowableError: Int? = null) {
@@ -73,31 +69,57 @@ data class Timing(override var time: Int, var bpm: Double, var beats: Double): I
 
 	fun align(n: Number, time: Int = this.time, toTime: Int = this.toTime, allowableError: Int? = null) {
 		timingGroup.tryRecalculateTimings()
-		val items = timingGroup.items.filterIsInstance<Note>()
 		val time = maxOf(time, this.time)
-		val toTime = minOf(toTime, range.last, items.last().toTime())
-		val firstIndex = items.binarySearch { it.time - time }.let { if (it >= 0) it else -it - 1 }
-		val lastIndex = items.binarySearch(firstIndex) { it.time - toTime }.let { if (it >= 0) it else -it - 2 }
-		if (lastIndex - firstIndex < 5) items.lazySubList(firstIndex, lastIndex).forEach {
-			align(it, n, allowableError)
-		} else {
-			val interval = 240_000 / (n.toDouble() * bpm).absoluteValue
-			items.lazySubList(firstIndex, lastIndex).forEach {
-				val nInterval = ((it.time - time) / interval).roundToInt()
-				val timeAfterAligned = time + (interval * nInterval).roundToInt()
-				when {
-					it is SkyLine && it.isArcTap -> alignNoteTime(it, timeAfterAligned, allowableError)
-					it is HoldLike -> alignHoldLikeToTime(it, n.toDouble(), allowableError, interval, timeAfterAligned)
-					else -> alignNoteTime(it, timeAfterAligned, allowableError)
+		val toTime = minOf(toTime, range.last, timingGroup.items.last().toTime())
+		val notes = timingGroup.notesInRange(time..toTime).toList()
+		if (notes.size < 5) {
+			notes.forEach { align(it, n, allowableError) }
+			return
+		}
+		val interval = 240_000 / (n.toDouble() * bpm).absoluteValue
+		notes.forEach {
+			val nInterval = ((it.time - time) / interval).roundToInt()
+			val timeAfterAligned = time + (interval * nInterval).roundToInt()
+			when {
+				it is SkyLine && it.isArcTap -> alignNoteTime(it, timeAfterAligned, allowableError)
+				it is HoldLike -> alignHoldLikeToTime(it, n.toDouble(), allowableError, interval, timeAfterAligned)
+				else -> alignNoteTime(it, timeAfterAligned, allowableError)
+			}
+			if (it is SkyLine && !it.isArcTap) for (i in it.arcTaps.indices) {
+				if (allowableError == null || (timeAfterAligned - it.arcTaps[i]).absoluteValue <= allowableError) {
+					val nInterval = ((it.arcTaps[i] - time) / interval).roundToInt()
+					it.arcTaps[i] = time + (interval * nInterval).roundToInt()
 				}
-				if (it is SkyLine && !it.isArcTap) for (i in it.arcTaps.indices)
-					if (allowableError == null || (timeAfterAligned - it.arcTaps[i]).absoluteValue <= allowableError)
-						it.arcTaps[i] = run {
-							val nInterval = ((it.arcTaps[i] - time) / interval).roundToInt()
-							time + (interval * nInterval).roundToInt()
-						}
 			}
 		}
+
+	}
+
+	val notes: List<Note>
+		get() {
+			timingGroup.tryRecalculateTimings()
+			return timingGroup.notesInRange(range)
+		}
+	val items: List<Item>
+		get() {
+			timingGroup.tryRecalculateTimings()
+			return timingGroup.itemsInRange(range)
+		}
+
+	fun scale(scale: Double, fromTime: Int? = null) {
+		if (scale != 1.0) {
+			val fromTime = maxOf(fromTime ?: 0, time)
+			bpm *= scale
+			when (fromTime) {
+				time -> items
+				in (time + 1)..toTime -> timingGroup.itemsInRange(fromTime..toTime)
+				else -> mutableListOf()
+			}.forEach {
+				if (it is HoldLike) it.scale(scale)
+				it.moveTo(((it.time - fromTime) / scale).roundToInt() + fromTime)
+			}
+		}
+		timingGroup.needRecalculateTimings = true
 	}
 
 	companion object: ItemCompanion(ItemClass.TIMING) {

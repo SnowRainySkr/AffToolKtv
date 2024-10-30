@@ -39,3 +39,13 @@ fun List<Timing>.find(time: Int): Timing =
 	} ?: throw noteCannotFindTimingException
 
 fun <T> List<T>.lazySubList(i: Int, j: Int): Sequence<T> = asSequence().drop(i).take(j - i + 1)
+
+private val factorialResult = mutableListOf<Long>(1).apply { for (i in 2..20) add(last() * i) }
+
+fun Int.fact() =
+	if (this < 21) factorialResult[this] else throw RuntimeException("FactorialResultOverflowException")
+
+infix fun Int.C(rhs: Int): Long {
+	fun f(a: Int, b: Int) = (a..b).fold(1L) { acc, i -> acc * i }
+	return f(rhs + 1, this) / (this - rhs).fact()
+}
